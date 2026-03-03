@@ -1,0 +1,3 @@
+/mnt/d/uni/ip-inventory/build/CMakeFiles/ip_inventory.dir
+/mnt/d/uni/ip-inventory/build/CMakeFiles/edit_cache.dir
+/mnt/d/uni/ip-inventory/build/CMakeFiles/rebuild_cache.dir
