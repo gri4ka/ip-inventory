@@ -24,3 +24,42 @@ void OdbcEnv::test() {
     }
     SQLFreeHandle(SQL_HANDLE_DBC, dbc);
 }
+
+OdbcConn::OdbcConn(SQLHENV e) : dbc(SQL_NULL_HDBC) {
+    if (!SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_DBC, e, &dbc)))
+        throw std::runtime_error("SQLAllocHandle DBC failed");
+}
+
+void OdbcConn::connect(const std::string& connStr) {
+    SQLCHAR out[1024];
+    SQLSMALLINT outlen = 0;
+    SQLRETURN rc = SQLDriverConnectA(
+        dbc, NULL,
+        (SQLCHAR*)connStr.c_str(), SQL_NTS,
+        out, sizeof(out), &outlen,
+        SQL_DRIVER_NOPROMPT
+    );
+    if (!SQL_SUCCEEDED(rc))
+        throw std::runtime_error("SQLDriverConnect failed: " + odbc_diag(SQL_HANDLE_DBC, dbc));
+}
+
+void OdbcConn::set_autocommit(bool on) {
+    SQLSetConnectAttr(dbc, SQL_ATTR_AUTOCOMMIT,
+        (SQLPOINTER)(on ? SQL_AUTOCOMMIT_ON : SQL_AUTOCOMMIT_OFF), 0);
+}
+
+OdbcConn::~OdbcConn() {
+    if (dbc != SQL_NULL_HDBC) {
+        SQLDisconnect(dbc);
+        SQLFreeHandle(SQL_HANDLE_DBC, dbc);
+    }
+}
+
+OdbcStmt::OdbcStmt(SQLHDBC dbc) : stmt(SQL_NULL_HSTMT) {
+    if (!SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt)))
+        throw std::runtime_error("SQLAllocHandle STMT failed");
+}
+
+OdbcStmt::~OdbcStmt() {
+    if (stmt != SQL_NULL_HSTMT) SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+}
