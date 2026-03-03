@@ -11,24 +11,30 @@
                 "CMAKE_C_COMPILER": "cl.exe",
                 "CMAKE_CXX_COMPILER": "cl.exe"
             },
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Windows"
-            }
+          "condition": {
+            "type": "equals",
+            "lhs": "${hostSystemName}",
+            "rhs": "Windows"
+          }
+
         },
-        {
-            "name": "x64-debug",
-            "displayName": "x64 Debug",
-            "inherits": "windows-base",
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
+      {
+        "name": "x64-debug",
+        "displayName": "x64 Debug",
+        "inherits": "windows-base",
+        "architecture": {
+          "value": "x64",
+          "strategy": "external"
         },
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Debug"
+        },
+        "environment": {
+          "IPINV_DB": "postgresql://postgres:postgres@localhost:5432/ipinv",
+          "IPINV_PORT": "8080",
+          "IPINV_ODBC": "Driver={PostgreSQL Unicode(x64)};Server=localhost;Port=5432;Database=ipinv;Uid=postgres;Pwd=postgres;"
+        }
+      },
         {
             "name": "x64-release",
             "displayName": "x64 Release",

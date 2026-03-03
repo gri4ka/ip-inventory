@@ -15,9 +15,4 @@ add_executable(ip_inventory
   #src/cleanup_job.cpp
 )
 
-#target_include_directories(ip_inventory PRIVATE include src)
-#target_link_libraries(ip_inventory PRIVATE libpqxx::pqxx)
-
-#if (WIN32)
-#  target_link_libraries(ip_inventory PRIVATE ws2_32)
-#endif()
+target_link_libraries(ip_inventory PRIVATE odbc32 ws2_32)
