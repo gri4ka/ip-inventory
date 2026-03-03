@@ -8,8 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #find_package(libpqxx CONFIG REQUIRED)
 
 add_executable(ip_inventory
-  ip-inventory.cpp
-  #src/main.cpp
+  "src/odbc_common.cpp"
+  "src/main.cpp"
   #src/db.cpp
   #src/ip_util.cpp
   #src/cleanup_job.cpp
