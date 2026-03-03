@@ -3,6 +3,8 @@
 #include <windows.h>
 #include <sqlext.h>
 
+std::string odbc_diag(SQLSMALLINT handleType, SQLHANDLE handle);
+
 // wrapper object for ODBC environment handle.
 struct OdbcEnv {
     SQLHENV env;

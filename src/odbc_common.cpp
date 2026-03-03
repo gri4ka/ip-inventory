@@ -3,6 +3,26 @@
 #include <stdexcept>
 #include <iostream>
 
+std::string odbc_diag(SQLSMALLINT htype, SQLHANDLE h) {
+    SQLCHAR state[6];
+    SQLCHAR msg[512];
+    SQLINTEGER native = 0;
+    SQLSMALLINT len = 0;
+    std::ostringstream oss;
+
+    std::memset(state, 0, sizeof(state));
+    std::memset(msg, 0, sizeof(msg));
+
+    for (SQLSMALLINT i = 1;; ++i) {
+        SQLRETURN rc = SQLGetDiagRecA(htype, h, i, state, &native, msg, sizeof(msg), &len);
+        if (rc == SQL_NO_DATA) break;
+        if (SQL_SUCCEEDED(rc)) {
+            oss << "[" << (const char*)state << "] " << (const char*)msg << " ";
+        }
+    }
+    return oss.str();
+}
+
 
 OdbcEnv::OdbcEnv() : env(SQL_NULL_HENV) {
     if (!SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &env)))
