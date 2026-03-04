@@ -70,18 +70,18 @@ void OdbcDb::add_ip_pool(const std::vector<std::pair<std::string,std::string> >&
     OdbcEnv env;
     OdbcConn conn(env.env);
     conn.connect(m_connStr);
-
+    std::string q =
+        "INSERT INTO ip_address(ip, ip_type, status, service_id, expires_at) "
+        "VALUES (?, ?, 'FREE', NULL, NULL) "
+        "ON CONFLICT (ip) DO NOTHING";
     for (size_t i = 0; i < ips.size(); ++i) {
         OdbcStmt st(conn.dbc);
-        SQLPrepareA(st.stmt, (SQLCHAR*)
-            "INSERT INTO ip_address(ip, ip_type, status, service_id, expires_at) "
-            "VALUES (?, ?, 'FREE', NULL, NULL) "
-            "ON CONFLICT (ip) DO NOTHING", SQL_NTS);
+        SQLPrepareA(st.stmt, (SQLCHAR*)q.c_str(), SQL_NTS);
 
         SQLLEN ipLen{}, typeLen{};
         bind_str(st.stmt, 1, ips[i].first,  ipLen);
         bind_str(st.stmt, 2, ips[i].second, typeLen);
-
+        Logger::log(Logger::Level::L_DEBUG, "Add IP pool SQL: " + q);
         SQLRETURN rc = SQLExecute(st.stmt);
         if (!SQL_SUCCEEDED(rc))
             throw std::runtime_error("insert failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
@@ -100,8 +100,10 @@ std::vector<IpRow> OdbcDb::reserve_ips(const std::string& serviceId,
     SQLHDBC dbc = conn.dbc;
 
     // Clean up expired reservations first
-    exec(dbc, "UPDATE ip_address SET status='FREE', service_id=NULL, expires_at=NULL "
-              "WHERE status='RESERVED' AND expires_at <= now()");
+    std::string cleanupQ = "UPDATE ip_address SET status='FREE', service_id=NULL, expires_at=NULL "
+        "WHERE status='RESERVED' AND expires_at <= now()";
+    Logger::log(Logger::Level::L_DEBUG, "Reserve cleanup SQL: " + cleanupQ);
+    exec(dbc, cleanupQ);
 
     // Check if service already has ASSIGNED IPs
     {
@@ -194,22 +196,22 @@ void OdbcDb::assign_ips(const std::string& serviceId, const std::vector<std::str
     OdbcEnv env;
     OdbcConn conn(env.env);
     conn.connect(m_connStr);
-
+    std::string q = "UPDATE ip_address "
+        "SET status='ASSIGNED', expires_at=NULL "
+        "WHERE ip=? AND ("
+        " (status='RESERVED' AND service_id=? AND expires_at > now()) "
+        " OR (status='ASSIGNED' AND service_id=?)"
+        ")";
     for (size_t i = 0; i < ips.size(); ++i) {
         OdbcStmt st(conn.dbc);
-        SQLPrepareA(st.stmt, (SQLCHAR*)
-            "UPDATE ip_address "
-            "SET status='ASSIGNED', expires_at=NULL "
-            "WHERE ip=? AND ("
-            " (status='RESERVED' AND service_id=? AND expires_at > now()) "
-            " OR (status='ASSIGNED' AND service_id=?)"
-            ")", SQL_NTS);
+        SQLPrepareA(st.stmt, (SQLCHAR*)q.c_str()
+            , SQL_NTS);
 
         SQLLEN ipLen{}, sid1Len{}, sid2Len{};
         bind_str(st.stmt, 1, ips[i],    ipLen);
         bind_str(st.stmt, 2, serviceId, sid1Len);
         bind_str(st.stmt, 3, serviceId, sid2Len);
-
+        Logger::log(Logger::Level::L_DEBUG, "Assign IP to a service SQL: " + q);
         SQLRETURN rc = SQLExecute(st.stmt);
 
         SQLLEN rows{};
@@ -231,18 +233,18 @@ void OdbcDb::terminate_ips(const std::string& serviceId, const std::vector<std::
     OdbcEnv env;
     OdbcConn conn(env.env);
     conn.connect(m_connStr);
-
+    std::string q =
+        "UPDATE ip_address "
+        "SET status='FREE', service_id=NULL, expires_at=NULL "
+        "WHERE ip=? AND service_id=? AND status IN ('RESERVED','ASSIGNED')";
     for (size_t i = 0; i < ips.size(); ++i) {
         OdbcStmt st(conn.dbc);
-        SQLPrepareA(st.stmt, (SQLCHAR*)
-            "UPDATE ip_address "
-            "SET status='FREE', service_id=NULL, expires_at=NULL "
-            "WHERE ip=? AND service_id=? AND status IN ('RESERVED','ASSIGNED')", SQL_NTS);
+        SQLPrepareA(st.stmt, (SQLCHAR*)q.c_str(), SQL_NTS);
 
         SQLLEN ipLen{}, sidLen{};
         bind_str(st.stmt, 1, ips[i],    ipLen);
         bind_str(st.stmt, 2, serviceId, sidLen);
-
+        Logger::log(Logger::Level::L_DEBUG, "Terminate IP of a service SQL: " + q);
         SQLRETURN rc = SQLExecute(st.stmt);
         if (!SQL_SUCCEEDED(rc))
             throw std::runtime_error("terminate failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
@@ -258,14 +260,15 @@ int OdbcDb::change_service_id(const std::string& oldId, const std::string& newId
     conn.connect(m_connStr);
 
     OdbcStmt st(conn.dbc);
-    SQLPrepareA(st.stmt, (SQLCHAR*)
+    std::string q =
         "UPDATE ip_address SET service_id=? "
-        "WHERE service_id=? AND status IN ('RESERVED','ASSIGNED')", SQL_NTS);
+        "WHERE service_id=? AND status IN ('RESERVED','ASSIGNED')";
+    SQLPrepareA(st.stmt, (SQLCHAR*)q.c_str(), SQL_NTS);
 
     SQLLEN newLen{}, oldLen{};
     bind_str(st.stmt, 1, newId, newLen);
     bind_str(st.stmt, 2, oldId, oldLen);
-
+    Logger::log(Logger::Level::L_DEBUG, "Change service ID SQL: " + q);
     SQLRETURN rc = SQLExecute(st.stmt);
     if (!SQL_SUCCEEDED(rc))
         throw std::runtime_error("serviceId-change failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
@@ -284,13 +287,14 @@ std::vector<IpRow> OdbcDb::get_ips_for_service(const std::string& serviceId) {
     conn.connect(m_connStr);
 
     OdbcStmt st(conn.dbc);
-    SQLPrepareA(st.stmt, (SQLCHAR*)
-        "SELECT ip, ip_type, status FROM ip_address "
-        "WHERE service_id=? ORDER BY ip_type, ip", SQL_NTS);
+    std::string q = "SELECT ip, ip_type, status FROM ip_address "
+        "WHERE service_id=? ORDER BY ip_type, ip";
+    SQLPrepareA(st.stmt, (SQLCHAR*)q.c_str()
+        , SQL_NTS);
 
     SQLLEN sidLen{};
     bind_str(st.stmt, 1, serviceId, sidLen);
-
+    Logger::log(Logger::Level::L_DEBUG, "Check IPs of a service SQL: " + q);
     SQLExecute(st.stmt);
     std::vector<IpRow> rows = fetch_rows(st.stmt);
     exec(conn.dbc, "COMMIT");
