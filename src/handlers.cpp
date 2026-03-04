@@ -36,6 +36,7 @@ static json ip_list_response(const std::vector<IpRow>& rows) {
 // POST /ip-inventory/ip-pool
 void handle_ip_pool(OdbcDb& db, const httplib::Request& req, httplib::Response& res) {
     try {
+        Logger::log(Logger::Level::L_DEBUG, "Add IP pool body: " + req.body);
         json body = json::parse(req.body);
         if (!body.contains("ipAddresses") || !body["ipAddresses"].is_array())
             return json_err(res, 400, "Missing ipAddresses[]");
@@ -69,7 +70,7 @@ void handle_ip_pool(OdbcDb& db, const httplib::Request& req, httplib::Response& 
 // POST /ip-inventory/reserve-ip
 void handle_reserve_ip(OdbcDb& db, const httplib::Request& req, httplib::Response& res, int ttlSeconds) {
     try {
-        Logger::log(Logger::Level::L_DEBUG, "Assign request body: " + req.body);
+        Logger::log(Logger::Level::L_DEBUG, "Reserve request body: " + req.body);
         json body = json::parse(req.body);
         if (!body.contains("serviceId") || !body.contains("ipType"))
             return json_err(res, 400, "Missing serviceId or ipType");
@@ -92,7 +93,7 @@ void handle_reserve_ip(OdbcDb& db, const httplib::Request& req, httplib::Respons
 // POST /ip-inventory/assign-ip-serviceId
 void handle_assign(OdbcDb& db, const httplib::Request& req, httplib::Response& res) {
     try {
-		
+        Logger::log(Logger::Level::L_DEBUG, "Assign IP to Service ID body: " + req.body);
         json body = json::parse(req.body);
         if (!body.contains("serviceId") || !body.contains("ipAddresses"))
             return json_err(res, 400, "Missing serviceId or ipAddresses");
@@ -113,6 +114,7 @@ void handle_assign(OdbcDb& db, const httplib::Request& req, httplib::Response& r
 // POST /ip-inventory/terminate-ip-serviceId
 void handle_terminate(OdbcDb& db, const httplib::Request& req, httplib::Response& res) {
     try {
+        Logger::log(Logger::Level::L_DEBUG, "Terminate Service body: " + req.body);
         json body = json::parse(req.body);
         if (!body.contains("serviceId") || !body.contains("ipAddresses"))
             return json_err(res, 400, "Missing serviceId or ipAddresses");
@@ -133,6 +135,7 @@ void handle_terminate(OdbcDb& db, const httplib::Request& req, httplib::Response
 // POST /ip-inventory/serviceId-change
 void handle_serviceid_change(OdbcDb& db, const httplib::Request& req, httplib::Response& res) {
     try {
+        Logger::log(Logger::Level::L_DEBUG, "Change service ID body: " + req.body);
         json body = json::parse(req.body);
         if (!body.contains("serviceIdOld") || !body.contains("serviceId"))
             return json_err(res, 400, "Missing serviceIdOld or serviceId");
@@ -148,6 +151,7 @@ void handle_serviceid_change(OdbcDb& db, const httplib::Request& req, httplib::R
 // GET /ip-inventory/serviceId?serviceId=xxxyyy
 void handle_get_by_serviceid(OdbcDb& db, const httplib::Request& req, httplib::Response& res) {
     std::string sid = req.get_param_value("serviceId");
+    Logger::log(Logger::Level::L_DEBUG, "Get IPs of a Service ID " + sid);
     if (sid.empty()) return json_err(res, 400, "Missing query param serviceId");
 
     try {
