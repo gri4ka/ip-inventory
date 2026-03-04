@@ -30,9 +30,10 @@
           "CMAKE_BUILD_TYPE": "Debug"
         },
         "environment": {
-          "IPINV_DB": "postgresql://postgres:postgres@localhost:5432/ipinv",
           "IPINV_PORT": "8080",
-          "IPINV_ODBC": "Driver={PostgreSQL Unicode(x64)};Server=localhost;Port=5432;Database=ipinv;Uid=postgres;Pwd=postgres;"
+          "IPINV_ODBC": "Driver={PostgreSQL Unicode(x64)};Server=localhost;Port=5433;Database=ipinv;Uid=postgres;Pwd=postgres;",
+          "IPINV_RESERVE_TTL_SEC": "60",
+          "IPINV_CLEANUP_INTERVAL_SEC": "60"
         }
       },
         {
