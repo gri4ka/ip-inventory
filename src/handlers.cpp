@@ -1,6 +1,6 @@
 #include "../headers/handlers.hpp"
 #include "../headers/ip_util.hpp"
-
+#include "../headers/logger.hpp"
 static void json_ok(httplib::Response& res, const json& j) {
     res.status = 200;
     res.set_content(j.dump(), "application/json");
@@ -69,6 +69,7 @@ void handle_ip_pool(OdbcDb& db, const httplib::Request& req, httplib::Response& 
 // POST /ip-inventory/reserve-ip
 void handle_reserve_ip(OdbcDb& db, const httplib::Request& req, httplib::Response& res, int ttlSeconds) {
     try {
+        Logger::log(Logger::Level::L_DEBUG, "Assign request body: " + req.body);
         json body = json::parse(req.body);
         if (!body.contains("serviceId") || !body.contains("ipType"))
             return json_err(res, 400, "Missing serviceId or ipType");
@@ -91,6 +92,7 @@ void handle_reserve_ip(OdbcDb& db, const httplib::Request& req, httplib::Respons
 // POST /ip-inventory/assign-ip-serviceId
 void handle_assign(OdbcDb& db, const httplib::Request& req, httplib::Response& res) {
     try {
+		
         json body = json::parse(req.body);
         if (!body.contains("serviceId") || !body.contains("ipAddresses"))
             return json_err(res, 400, "Missing serviceId or ipAddresses");

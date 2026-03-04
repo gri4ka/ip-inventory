@@ -1,5 +1,6 @@
 #include "../headers/odbc_db.hpp"
 #include "../headers/odbc_common.hpp"
+#include "../headers/logger.hpp"
 #include <stdexcept>
 #include <sstream>
 
@@ -7,8 +8,10 @@
 static void exec(SQLHDBC dbc, const std::string& sql) {
     OdbcStmt st(dbc);
     SQLRETURN rc = SQLExecDirectA(st.stmt, (SQLCHAR*)sql.c_str(), SQL_NTS);
-    if (!SQL_SUCCEEDED(rc))
+    if (!SQL_SUCCEEDED(rc) && rc != SQL_NO_DATA){
+		Logger::log(Logger::Level::L_ERROR, "SQL execution failed: " + sql + " with message " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
         throw std::runtime_error("SQL failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
+    }
 }
 
 // Bind a string to a parameter position. Caller must keep param and len alive until execute.
@@ -52,7 +55,7 @@ int OdbcDb::release_expired_reservations() {
         "UPDATE ip_address "
         "SET status='FREE', service_id=NULL, expires_at=NULL "
         "WHERE status='RESERVED' AND expires_at <= now()", SQL_NTS);
-    if (!SQL_SUCCEEDED(rc))
+    if (!SQL_SUCCEEDED(rc) && rc != SQL_NO_DATA)
         throw std::runtime_error("cleanup failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
 
     SQLLEN rows{};
@@ -112,7 +115,7 @@ std::vector<IpRow> OdbcDb::reserve_ips(const std::string& serviceId,
         SQLLEN sidLen{}, typeLen{};
         bind_str(st.stmt, 1, serviceId, sidLen);
         if (ipType != "Both") bind_str(st.stmt, 2, ipType, typeLen);
-
+        Logger::log(Logger::Level::L_DEBUG, "Service already has ASSIGNED IPs SQL: " + q);
         SQLExecute(st.stmt);
         std::vector<IpRow> rows = fetch_rows(st.stmt);
         if (!rows.empty()) { exec(dbc, "COMMIT"); return rows; }
@@ -130,7 +133,7 @@ std::vector<IpRow> OdbcDb::reserve_ips(const std::string& serviceId,
         SQLLEN sidLen{}, typeLen{};
         bind_str(st.stmt, 1, serviceId, sidLen);
         if (ipType != "Both") bind_str(st.stmt, 2, ipType, typeLen);
-
+        Logger::log(Logger::Level::L_DEBUG, "Service already has active RESERVED IPs SQL: " + q);
         SQLExecute(st.stmt);
         std::vector<IpRow> rows = fetch_rows(st.stmt);
         if (!rows.empty()) { exec(dbc, "COMMIT"); return rows; }
@@ -139,8 +142,7 @@ std::vector<IpRow> OdbcDb::reserve_ips(const std::string& serviceId,
     // Reserve a free IP of the given type
     auto reserve_one = [&](const std::string& type) -> IpRow {
         OdbcStmt st(dbc);
-        SQLPrepareA(st.stmt, (SQLCHAR*)
-            "UPDATE ip_address "
+        std::string q = "UPDATE ip_address "
             "SET status='RESERVED', service_id=?, "
             "    expires_at=now() + (? || ' seconds')::interval "
             "WHERE ip = ("
@@ -148,7 +150,8 @@ std::vector<IpRow> OdbcDb::reserve_ips(const std::string& serviceId,
             "  WHERE status='FREE' AND ip_type=? "
             "  ORDER BY ip LIMIT 1 "
             "  FOR UPDATE SKIP LOCKED"
-            ") RETURNING ip, ip_type, status", SQL_NTS);
+			") RETURNING ip, ip_type, status";
+        SQLPrepareA(st.stmt, (SQLCHAR*)q.c_str(), SQL_NTS);
 
         std::ostringstream oss;
         oss << ttlSeconds;
@@ -158,14 +161,18 @@ std::vector<IpRow> OdbcDb::reserve_ips(const std::string& serviceId,
         bind_str(st.stmt, 1, serviceId, sidLen);
         bind_str(st.stmt, 2, ttlStr,    ttlLen);
         bind_str(st.stmt, 3, type,      typeLen);
-
+        Logger::log(Logger::Level::L_DEBUG, "Reserve a free IP SQL: " + q);
         SQLRETURN rc = SQLExecute(st.stmt);
+        std::vector<IpRow> rows = fetch_rows(st.stmt);
+        if (rows.empty()){
+            std::string e = "Not enough free IPs for " + type;
+            Logger::log(Logger::Level::L_ERROR, e);
+            throw std::runtime_error(e);
+        }
         if (!SQL_SUCCEEDED(rc))
             throw std::runtime_error("reserve failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
 
-        std::vector<IpRow> rows = fetch_rows(st.stmt);
-        if (rows.empty())
-            throw std::runtime_error("Not enough free IPs for " + type);
+        
         return rows[0];
     };
 
@@ -204,13 +211,16 @@ void OdbcDb::assign_ips(const std::string& serviceId, const std::vector<std::str
         bind_str(st.stmt, 3, serviceId, sid2Len);
 
         SQLRETURN rc = SQLExecute(st.stmt);
-        if (!SQL_SUCCEEDED(rc))
-            throw std::runtime_error("assign failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
 
         SQLLEN rows{};
         SQLRowCount(st.stmt, &rows);
         if (rows == 0)
             throw std::runtime_error("Assign rejected for: " + ips[i]);
+
+        if (!SQL_SUCCEEDED(rc))
+            throw std::runtime_error("assign failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
+
+        
     }
     exec(conn.dbc, "COMMIT");
 }
