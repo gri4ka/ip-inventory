@@ -4,14 +4,12 @@ project(ip_inventory CXX)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# vcpkg provides this config package name
-#find_package(libpqxx CONFIG REQUIRED)
-
 add_executable(ip_inventory
   "src/odbc_common.cpp"
   "src/main.cpp"
-  #src/db.cpp
-  #src/ip_util.cpp
+  "src/odbc_db.cpp"
+  "src/ip_util.cpp"
+  "src/handlers.cpp"
   #src/cleanup_job.cpp
 )
 
