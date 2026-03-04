@@ -4,14 +4,11 @@
 #include <iostream>
 
 std::string odbc_diag(SQLSMALLINT htype, SQLHANDLE h) {
-    SQLCHAR state[6];
-    SQLCHAR msg[512];
+    SQLCHAR state[6]{};
+    SQLCHAR msg[512]{};
     SQLINTEGER native = 0;
     SQLSMALLINT len = 0;
     std::ostringstream oss;
-
-    std::memset(state, 0, sizeof(state));
-    std::memset(msg, 0, sizeof(msg));
 
     for (SQLSMALLINT i = 1;; ++i) {
         SQLRETURN rc = SQLGetDiagRecA(htype, h, i, state, &native, msg, sizeof(msg), &len);
@@ -51,7 +48,7 @@ OdbcConn::OdbcConn(SQLHENV e) : dbc(SQL_NULL_HDBC) {
 }
 
 void OdbcConn::connect(const std::string& connStr) {
-    SQLCHAR out[1024];
+    SQLCHAR out[1024]{};
     SQLSMALLINT outlen = 0;
     SQLRETURN rc = SQLDriverConnectA(
         dbc, NULL,
@@ -61,12 +58,12 @@ void OdbcConn::connect(const std::string& connStr) {
     );
     if (!SQL_SUCCEEDED(rc))
         throw std::runtime_error("SQLDriverConnect failed: " + odbc_diag(SQL_HANDLE_DBC, dbc));
+    SQLSetConnectAttr(dbc, SQL_ATTR_AUTOCOMMIT,
+        (SQLPOINTER)SQL_AUTOCOMMIT_OFF, 0);
+
 }
 
-void OdbcConn::set_autocommit(bool on) {
-    SQLSetConnectAttr(dbc, SQL_ATTR_AUTOCOMMIT,
-        (SQLPOINTER)(on ? SQL_AUTOCOMMIT_ON : SQL_AUTOCOMMIT_OFF), 0);
-}
+
 
 OdbcConn::~OdbcConn() {
     if (dbc != SQL_NULL_HDBC) {
