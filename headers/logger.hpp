@@ -18,10 +18,10 @@ public:
 		case Level::L_ERROR:   prefix = "[ERROR]: "; break;
 		}
 		time_t now = time(0);
-		tm* timeinfo = localtime(&now);
 		char timestamp[20];
-		strftime(timestamp, sizeof(timestamp),
-			"%Y-%m-%d %H:%M:%S", timeinfo);
+		tm timeinfo{};
+		localtime_s(&timeinfo, &now);
+		strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
 		std::cout << "[" << timestamp << "] " << prefix << message << std::endl;
 	}
 };
