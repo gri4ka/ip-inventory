@@ -1,3 +1,3 @@
-/mnt/d/uni/ip-inventory/build/CMakeFiles/ip_inventory.dir
-/mnt/d/uni/ip-inventory/build/CMakeFiles/edit_cache.dir
-/mnt/d/uni/ip-inventory/build/CMakeFiles/rebuild_cache.dir
+D:/uni/ip-inventory/build/CMakeFiles/ip_inventory.dir
+D:/uni/ip-inventory/build/CMakeFiles/ALL_BUILD.dir
+D:/uni/ip-inventory/build/CMakeFiles/ZERO_CHECK.dir

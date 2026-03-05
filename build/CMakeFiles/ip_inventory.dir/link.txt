@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/ip_inventory.dir/ip-inventory.cpp.o -o ip_inventory 
