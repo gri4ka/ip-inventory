@@ -10,7 +10,6 @@ add_executable(ip_inventory
   "src/odbc_db.cpp"
   "src/ip_util.cpp"
   "src/handlers.cpp"
-  #src/cleanup_job.cpp
-)
+  "src/cleanup.cpp")
 
 target_link_libraries(ip_inventory PRIVATE odbc32 ws2_32)
