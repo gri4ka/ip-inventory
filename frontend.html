@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>IP Inventory</title>
+
+</head>
+<body>
+
+<h1>IP Inventory</h1>
+
+<h2>Add to Pool</h2>
+    <div id="ip-rows">
+      <div><input placeholder="IP address" /> <select><option>IPv4</option><option>IPv6</option></select> </div> 
+    </div>
+    <button onclick="addRow()">+ Add row</button>
+    <button onclick="submitPool()">Submit</button>
+    <pre id="out-pool"></pre>
+
+<hr>
+
+<h2>Reserve IP</h2>
+    Service ID: <input id="r-sid" />
+    Type: <select id="r-type"><option>Both</option><option>IPv4</option><option>IPv6</option></select>
+    <button onclick="submitReserve()">Reserve</button>
+    <pre id="out-reserve"></pre>
+
+<hr>
+
+<h2>Assign IP</h2>
+    Service ID: <input id="a-sid" />
+    <textarea id="a-ips" placeholder="One IP per line"></textarea>
+    <button onclick="submitAssign()">Assign</button>
+    <pre id="out-assign"></pre>
+
+<hr>
+
+<h2>Terminate IP</h2>
+    Service ID: <input id="t-sid" />
+    <textarea id="t-ips" placeholder="One IP per line"></textarea>
+    <button onclick="submitTerminate()">Terminate</button>
+    <pre id="out-terminate"></pre>
+
+<hr>
+
+<h2>Change Service ID</h2>
+    Old: <input id="c-old" /> New: <input id="c-new" />
+    <button onclick="submitChange()">Change</button>
+    <pre id="out-change"></pre>
+
+<hr>
+
+<h2>Query Service</h2>
+    Service ID: <input id="q-sid" />
+    <button onclick="submitQuery()">Query</button>
+    <pre id="out-query"></pre>
+
+<script>
+const API = 'http://localhost:8080';
+
+async function call(out, method, url, body) {
+    try {
+        const opts = { method, headers: { 'Content-Type': 'application/json' } };
+        if (body) opts.body = JSON.stringify(body);
+        const res = await fetch(API + url, opts);
+        const data = await res.json();
+        document.getElementById(out).textContent = res.status + '\n' + JSON.stringify(data, null, 2);
+    } catch (e) {
+        document.getElementById(out).textContent = 'Error: ' + e.message;
+    }
+}
+
+function addRow() {
+    const div = document.createElement('div');
+    div.innerHTML = '<input placeholder="IP address" /> <select><option>IPv4</option><option>IPv6</option></select> <button onclick="removeRow(this)">x</button>';
+    document.getElementById('ip-rows').appendChild(div);
+}
+function removeRow(btn) {
+    btn.parentElement.remove();
+}
+function submitPool() {
+    const rows = document.querySelectorAll('#ip-rows div');
+    const ipAddresses = [];
+    rows.forEach(r => {
+        const ip = r.querySelector('input').value.trim();
+        const ipType = r.querySelector('select').value;
+        if (ip) ipAddresses.push({ ip, ipType });
+    });
+    call('out-pool', 'POST', '/ip-inventory/ip-pool', { ipAddresses });
+}
+
+function submitReserve() {
+    call('out-reserve', 'POST', '/ip-inventory/reserve-ip', {
+        serviceId: document.getElementById('r-sid').value.trim(),
+        ipType: document.getElementById('r-type').value
+    });
+}
+
+function submitAssign() {
+    const ips = document.getElementById('a-ips').value.trim().split('\n').filter(l => l.trim());
+    call('out-assign', 'POST', '/ip-inventory/assign-ip-serviceId', {
+        serviceId: document.getElementById('a-sid').value.trim(),
+        ipAddresses: ips.map(ip => ({ ip: ip.trim() }))
+    });
+}
+
+function submitTerminate() {
+    const ips = document.getElementById('t-ips').value.trim().split('\n').filter(l => l.trim());
+    call('out-terminate', 'POST', '/ip-inventory/terminate-ip-serviceId', {
+        serviceId: document.getElementById('t-sid').value.trim(),
+        ipAddresses: ips.map(ip => ({ ip: ip.trim() }))
+    });
+}
+
+function submitChange() {
+    call('out-change', 'POST', '/ip-inventory/serviceId-change', {
+        serviceIdOld: document.getElementById('c-old').value.trim(),
+        serviceId: document.getElementById('c-new').value.trim()
+    });
+}
+
+function submitQuery() {
+    const sid = document.getElementById('q-sid').value.trim();
+    call('out-query', 'GET', '/ip-inventory/serviceId?serviceId=' + encodeURIComponent(sid));
+}
+</script>
+</body>
+</html>
