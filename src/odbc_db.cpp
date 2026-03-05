@@ -56,8 +56,9 @@ int OdbcDb::release_expired_reservations() {
         "SET status='FREE', service_id=NULL, expires_at=NULL "
         "WHERE status='RESERVED' AND expires_at <= now()", SQL_NTS);
     if (!SQL_SUCCEEDED(rc) && rc != SQL_NO_DATA)
-        throw std::runtime_error("cleanup failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
-
+        throw std::runtime_error("Cleanup failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
+    if (rc == SQL_NO_DATA)
+        Logger::log(Logger::Level::L_INFO, "No IPs were pending release.");
     SQLLEN rows{};
     SQLRowCount(st.stmt, &rows);
     exec(conn.dbc, "COMMIT");
@@ -85,9 +86,10 @@ void OdbcDb::add_ip_pool(const std::vector<std::pair<std::string,std::string> >&
         SQLRETURN rc = SQLExecute(st.stmt);
         SQLLEN rows{};
         SQLRowCount(st.stmt, &rows);
-        if (rows == 0)
+        if (rows == 0) {
             Logger::log(Logger::Level::L_WARNING, "Insert rejected for: " + ips[i].first);
             throw std::runtime_error("Insert rejected for: " + ips[i].first);
+        }
         if (!SQL_SUCCEEDED(rc))
             throw std::runtime_error("insert failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
     }
@@ -221,9 +223,10 @@ void OdbcDb::assign_ips(const std::string& serviceId, const std::vector<std::str
 
         SQLLEN rows{};
         SQLRowCount(st.stmt, &rows);
-        if (rows == 0)
+        if (rows == 0) {
             Logger::log(Logger::Level::L_WARNING, "Assign rejected for: " + ips[i]);
             throw std::runtime_error("Assign rejected for: " + ips[i]);
+        }
         if (!SQL_SUCCEEDED(rc))
             throw std::runtime_error("assign failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
 
@@ -254,9 +257,10 @@ void OdbcDb::terminate_ips(const std::string& serviceId, const std::vector<std::
 
         SQLLEN rows{};
         SQLRowCount(st.stmt, &rows);
-        if (rows == 0)
+        if (rows == 0) {
             Logger::log(Logger::Level::L_WARNING, "IP not found or not owned by service: " + ips[i]);
             throw std::runtime_error("Terminate rejected for: " + ips[i] + ". IP not found or not owned by service.");
+        }
         if (!SQL_SUCCEEDED(rc))
             throw std::runtime_error("terminate failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
 
