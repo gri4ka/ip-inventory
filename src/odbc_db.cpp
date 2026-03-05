@@ -82,7 +82,7 @@ void OdbcDb::add_ip_pool(const std::vector<std::pair<std::string,std::string> >&
         SQLLEN ipLen{}, typeLen{};
         bind_str(st.stmt, 1, ips[i].first,  ipLen);
         bind_str(st.stmt, 2, ips[i].second, typeLen);
-        Logger::log(Logger::Level::L_DEBUG, "Add IP pool SQL: " + q);
+        Logger::log(Logger::Level::L_INFO, "Add IP pool SQL: " + q);
         SQLRETURN rc = SQLExecute(st.stmt);
         SQLLEN rows{};
         SQLRowCount(st.stmt, &rows);
@@ -124,7 +124,7 @@ std::vector<IpRow> OdbcDb::reserve_ips(const std::string& serviceId,
         SQLLEN sidLen{}, typeLen{};
         bind_str(st.stmt, 1, serviceId, sidLen);
         if (ipType != "Both") bind_str(st.stmt, 2, ipType, typeLen);
-        Logger::log(Logger::Level::L_DEBUG, "Service already has ASSIGNED IPs SQL: " + q);
+        Logger::log(Logger::Level::L_INFO, "Service already has ASSIGNED IPs SQL: " + q);
         SQLExecute(st.stmt);
         std::vector<IpRow> rows = fetch_rows(st.stmt);
         if (!rows.empty()) { exec(dbc, "COMMIT"); return rows; }
@@ -142,7 +142,7 @@ std::vector<IpRow> OdbcDb::reserve_ips(const std::string& serviceId,
         SQLLEN sidLen{}, typeLen{};
         bind_str(st.stmt, 1, serviceId, sidLen);
         if (ipType != "Both") bind_str(st.stmt, 2, ipType, typeLen);
-        Logger::log(Logger::Level::L_DEBUG, "Service already has active RESERVED IPs SQL: " + q);
+        Logger::log(Logger::Level::L_INFO, "Service already has active RESERVED IPs SQL: " + q);
         SQLExecute(st.stmt);
         std::vector<IpRow> rows = fetch_rows(st.stmt);
         if (!rows.empty()) { exec(dbc, "COMMIT"); return rows; }
@@ -170,7 +170,7 @@ std::vector<IpRow> OdbcDb::reserve_ips(const std::string& serviceId,
         bind_str(st.stmt, 1, serviceId, sidLen);
         bind_str(st.stmt, 2, ttlStr,    ttlLen);
         bind_str(st.stmt, 3, type,      typeLen);
-        Logger::log(Logger::Level::L_DEBUG, "Reserve a free IP SQL: " + q);
+        Logger::log(Logger::Level::L_INFO, "Reserve a free IP SQL: " + q);
         SQLRETURN rc = SQLExecute(st.stmt);
         std::vector<IpRow> rows = fetch_rows(st.stmt);
         if (rows.empty()){
@@ -218,7 +218,7 @@ void OdbcDb::assign_ips(const std::string& serviceId, const std::vector<std::str
         bind_str(st.stmt, 1, ips[i],    ipLen);
         bind_str(st.stmt, 2, serviceId, sid1Len);
         bind_str(st.stmt, 3, serviceId, sid2Len);
-        Logger::log(Logger::Level::L_DEBUG, "Assign IP to a service SQL: " + q);
+        Logger::log(Logger::Level::L_INFO, "Assign IP to a service SQL: " + q);
         SQLRETURN rc = SQLExecute(st.stmt);
 
         SQLLEN rows{};
@@ -252,7 +252,7 @@ void OdbcDb::terminate_ips(const std::string& serviceId, const std::vector<std::
         SQLLEN ipLen{}, sidLen{};
         bind_str(st.stmt, 1, ips[i],    ipLen);
         bind_str(st.stmt, 2, serviceId, sidLen);
-        Logger::log(Logger::Level::L_DEBUG, "Terminate IP of a service SQL: " + q);
+        Logger::log(Logger::Level::L_INFO, "Terminate IP of a service SQL: " + q);
         SQLRETURN rc = SQLExecute(st.stmt);
 
         SQLLEN rows{};
@@ -284,7 +284,7 @@ int OdbcDb::change_service_id(const std::string& oldId, const std::string& newId
     SQLLEN newLen{}, oldLen{};
     bind_str(st.stmt, 1, newId, newLen);
     bind_str(st.stmt, 2, oldId, oldLen);
-    Logger::log(Logger::Level::L_DEBUG, "Change service ID SQL: " + q);
+    Logger::log(Logger::Level::L_INFO, "Change service ID SQL: " + q);
     SQLRETURN rc = SQLExecute(st.stmt);
     if (!SQL_SUCCEEDED(rc))
         throw std::runtime_error("serviceId-change failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
@@ -310,7 +310,7 @@ std::vector<IpRow> OdbcDb::get_ips_for_service(const std::string& serviceId) {
 
     SQLLEN sidLen{};
     bind_str(st.stmt, 1, serviceId, sidLen);
-    Logger::log(Logger::Level::L_DEBUG, "Check IPs of a service SQL: " + q);
+    Logger::log(Logger::Level::L_INFO, "Check IPs of a service SQL: " + q);
     SQLExecute(st.stmt);
     std::vector<IpRow> rows = fetch_rows(st.stmt);
     exec(conn.dbc, "COMMIT");
