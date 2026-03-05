@@ -83,6 +83,11 @@ void OdbcDb::add_ip_pool(const std::vector<std::pair<std::string,std::string> >&
         bind_str(st.stmt, 2, ips[i].second, typeLen);
         Logger::log(Logger::Level::L_DEBUG, "Add IP pool SQL: " + q);
         SQLRETURN rc = SQLExecute(st.stmt);
+        SQLLEN rows{};
+        SQLRowCount(st.stmt, &rows);
+        if (rows == 0)
+            Logger::log(Logger::Level::L_WARNING, "Insert rejected for: " + ips[i].first);
+            throw std::runtime_error("Insert rejected for: " + ips[i].first);
         if (!SQL_SUCCEEDED(rc))
             throw std::runtime_error("insert failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
     }
@@ -217,8 +222,8 @@ void OdbcDb::assign_ips(const std::string& serviceId, const std::vector<std::str
         SQLLEN rows{};
         SQLRowCount(st.stmt, &rows);
         if (rows == 0)
+            Logger::log(Logger::Level::L_WARNING, "Assign rejected for: " + ips[i]);
             throw std::runtime_error("Assign rejected for: " + ips[i]);
-
         if (!SQL_SUCCEEDED(rc))
             throw std::runtime_error("assign failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
 
@@ -246,14 +251,21 @@ void OdbcDb::terminate_ips(const std::string& serviceId, const std::vector<std::
         bind_str(st.stmt, 2, serviceId, sidLen);
         Logger::log(Logger::Level::L_DEBUG, "Terminate IP of a service SQL: " + q);
         SQLRETURN rc = SQLExecute(st.stmt);
+
+        SQLLEN rows{};
+        SQLRowCount(st.stmt, &rows);
+        if (rows == 0)
+            Logger::log(Logger::Level::L_WARNING, "IP not found or not owned by service: " + ips[i]);
+            throw std::runtime_error("Terminate rejected for: " + ips[i] + ". IP not found or not owned by service.");
         if (!SQL_SUCCEEDED(rc))
             throw std::runtime_error("terminate failed: " + odbc_diag(SQL_HANDLE_STMT, st.stmt));
+
     }
     exec(conn.dbc, "COMMIT");
 }
 
 // ---------------------------------------------------------------------------
-
+//possibly do something with this int, for not it's useless
 int OdbcDb::change_service_id(const std::string& oldId, const std::string& newId) {
     OdbcEnv env;
     OdbcConn conn(env.env);
