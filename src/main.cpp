@@ -2,6 +2,7 @@
 #include "../headers/handlers.hpp"
 #include "../headers/odbc_db.hpp"
 #include "../headers/logger.hpp"
+#include "../headers/cleanup.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <csignal>
@@ -40,7 +41,8 @@ int main() {
     int cleanupInterval = cleanupEnv ? std::atoi(cleanupEnv) : 30;
 
     OdbcDb db(odbcConn);
-
+    CleanupJob job(db, cleanupInterval);
+    job.start();
     httplib::Server svr;
     g_server = &svr;
     std::signal(SIGINT, signal_handler);
@@ -59,7 +61,6 @@ int main() {
 
     svr.Post("/ip-inventory/ip-pool",
         [&db](const httplib::Request& req, httplib::Response& res) {
-            Logger::log(Logger::Level::L_DEBUG, "Received request: " + req.method + " " + req.path + " with body " + req.body);
             handle_ip_pool(db, req, res);
         });
 
@@ -92,6 +93,7 @@ int main() {
     svr.listen("0.0.0.0", port);
 
     std::cout << "Shutting down..." << std::endl;
+	job.stop();
     WSACleanup();
     return 0;
 }
