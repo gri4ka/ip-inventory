@@ -78,7 +78,7 @@ After building if using Visual Studio, run the project. You can also find the ex
 Ideally you would open the `frontend.html` and use it to manually test the API. However, you can also use `curl` or any API testing tool like Postman to send requests to the API endpoints.
 I personally failed to test with curl so I can not comment on that.
 An example Postman request could be: `Type: POST, URL: http://localhost:8080/ip-inventory/ip-pool, Body: {"ipAddresses": [{"ip": "9.9.9.9", "ipType": "IPv4"}]}`.
-
+You can also view the swagger yalm. I am not familiar with the technology and used editor.swagger.io to make it. I hope it works fine on whatever you use to inspect it.
 
 Configuration via environment variables(found in `CMakePresets.json`):
 
