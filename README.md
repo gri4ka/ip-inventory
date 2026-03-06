@@ -36,6 +36,7 @@ The application is structured into several layers:
 - **Infrastructure Layer**: This layer includes infrastructure functionalities such as wrappers for ODBC handles(`odbc_common.cpp`), logging (`logger.hpp`), IP address manipulation (`ip_util.hpp`), and cleanup tasks (`cleanup.hpp`).
 
 ### Project Decisions
+- Windows only: Recuded overall complexity for myself in the setup of the database and db connection. Otherwise the code is mostly platform agnostic, except for the sockets.  
 - http library: `httplib.h` was chosen for its compatibility, simplicity and header-only nature, which allows for easy integration.
 - json library: `json.hpp` was chosen for its ease of use and header-only nature.
 - RAII for ODBC handles: To ensure proper resource management and prevent leaks, RAII wrappers were implemented for ODBC handles.
