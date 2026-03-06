@@ -1,3 +1,0 @@
-D:/uni/ip-inventory/build/CMakeFiles/ip_inventory.dir
-D:/uni/ip-inventory/build/CMakeFiles/ALL_BUILD.dir
-D:/uni/ip-inventory/build/CMakeFiles/ZERO_CHECK.dir
