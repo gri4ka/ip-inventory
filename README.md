@@ -39,7 +39,7 @@ The application is structured into several layers:
 - Windows only: Recuded overall complexity for myself in the setup of the database and db connection. Otherwise the code is mostly platform agnostic, except for the sockets.  
 - http library: `httplib.h` was chosen for its compatibility, simplicity and header-only nature, which allows for easy integration.
 - json library: `json.hpp` was chosen for its ease of use and header-only nature.
-- RAII for ODBC handles: To ensure proper resource management and prevent leaks, RAII wrappers were implemented for ODBC handles.
+- RAII for ODBC handles: To ensure proper resource management and prevent leaks, RAII wrappers were implemented for ODBC handles. While technically unnnecesarry for such a small project, I found it a good practice.
 - Separate threads for API server and cleanup: The API server runs in the main thread, while a separate thread is dedicated to periodically cleaning up expired reservations. This allows handling of API requests without blocking due to cleanup operations.
 - Full GUI for all API operations: This made my life way easier when testing. The requirement was to only have a GUI for the ip-pool method, however I decided to extend it for all. 
 ## Setup
