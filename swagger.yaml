@@ -1,0 +1,305 @@
+openapi: 3.0.3
+info:
+  title: IP Inventory API
+  description: REST API for managing IP address inventory - reserve, assign, and terminate IP addresses for services.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+
+paths:
+  /ip-inventory/ip-pool:
+    post:
+      summary: Add IPs to the inventory pool
+      description: Adds IP addresses to the IP inventory pool database with given IP addresses and ipType.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ipAddresses
+              properties:
+                ipAddresses:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - ip
+                      - ipType
+                    properties:
+                      ip:
+                        type: string
+                        example: "95.44.73.19"
+                      ipType:
+                        type: string
+                        enum: [IPv4, IPv6]
+                        example: "IPv4"
+            example:
+              ipAddresses:
+                - ip: "95.44.73.19"
+                  ipType: "IPv4"
+                - ip: "2a01:05a9:01a4:095c:0000:0000:0000:0001"
+                  ipType: "IPv6"
+                - ip: "95.44.73.18"
+                  ipType: "IPv4"
+      responses:
+        "200":
+          description: IPs added successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ip-inventory/reserve-ip:
+    post:
+      summary: Reserve an IP address
+      description: Returns reserved IP address for specific serviceId. If the service already has assigned or reserved IPs, returns those. Otherwise allocates a free IP from the pool.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - serviceId
+                - ipType
+              properties:
+                serviceId:
+                  type: string
+                  example: "xxxyyy"
+                ipType:
+                  type: string
+                  enum: [IPv4, IPv6, Both]
+                  example: "Both"
+            example:
+              serviceId: "xxxyyy"
+              ipType: "Both"
+      responses:
+        "200":
+          description: IP(s) reserved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IpListResponse"
+              example:
+                ipAddresses:
+                  - ip: "95.44.73.19"
+                    ipType: "IPv4"
+                  - ip: "2a01:05a9:01a4:095c:0000:0000:0000:0001"
+                    ipType: "IPv6"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Not enough free IPs available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ip-inventory/assign-ip-serviceId:
+    post:
+      summary: Assign IP address to a service
+      description: Assigns a previously reserved IP address to a serviceId, making the assignment permanent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - serviceId
+                - ipAddresses
+              properties:
+                serviceId:
+                  type: string
+                  example: "xxxyyy"
+                ipAddresses:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - ip
+                    properties:
+                      ip:
+                        type: string
+                        example: "95.44.73.19"
+            example:
+              serviceId: "xxxyyy"
+              ipAddresses:
+                - ip: "95.44.73.19"
+                - ip: "2a01:05a9:01a4:095c:0000:0000:0000:0001"
+      responses:
+        "200":
+          description: IPs assigned successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "409":
+          description: Assignment rejected - IP not reserved for this service or reservation expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ip-inventory/terminate-ip-serviceId:
+    post:
+      summary: Terminate IP assignment
+      description: Terminates the assignment of IP addresses to a serviceId, releasing them back to the free pool.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - serviceId
+                - ipAddresses
+              properties:
+                serviceId:
+                  type: string
+                  example: "xxxyyy"
+                ipAddresses:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - ip
+                    properties:
+                      ip:
+                        type: string
+                        example: "95.44.73.19"
+            example:
+              serviceId: "xxxyyy"
+              ipAddresses:
+                - ip: "95.44.73.19"
+                - ip: "2a01:05a9:01a4:095c:0000:0000:0000:0001"
+      responses:
+        "200":
+          description: IPs terminated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ip-inventory/serviceId-change:
+    post:
+      summary: Change service ID
+      description: Changes the assignment of all IPs from an old serviceId to a new serviceId.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - serviceIdOld
+                - serviceId
+              properties:
+                serviceIdOld:
+                  type: string
+                  example: "xxxyyy"
+                serviceId:
+                  type: string
+                  example: "zzzppp"
+            example:
+              serviceIdOld: "xxxyyy"
+              serviceId: "zzzppp"
+      responses:
+        "200":
+          description: Service ID changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ip-inventory/serviceId:
+    get:
+      summary: Query IPs by service ID
+      description: Check by serviceId whether a subscriber has associated IP addresses.
+      parameters:
+        - name: serviceId
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "xxxyyy"
+      responses:
+        "200":
+          description: List of IPs for the service
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IpListResponse"
+              example:
+                ipAddresses:
+                  - ip: "95.44.73.19"
+                    ipType: "IPv4"
+                  - ip: "2a01:05a9:01a4:095c:0000:0000:0000:0001"
+                    ipType: "IPv6"
+        "400":
+          description: Missing serviceId parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        statusCode:
+          type: string
+          example: "0"
+        statusMessage:
+          type: string
+          example: "Successful operation. OK"
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        statusMessage:
+          type: string
+          example: "Error description"
+
+    IpListResponse:
+      type: object
+      properties:
+        ipAddresses:
+          type: array
+          items:
+            type: object
+            properties:
+              ip:
+                type: string
+              ipType:
+                type: string
+                enum: [IPv4, IPv6]

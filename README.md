@@ -39,7 +39,7 @@ The application is structured into several layers:
 - Windows only: Recuded overall complexity for myself in the setup of the database and db connection. Otherwise the code is mostly platform agnostic, except for the sockets.  
 - http library: `httplib.h` was chosen for its compatibility, simplicity and header-only nature, which allows for easy integration.
 - json library: `json.hpp` was chosen for its ease of use and header-only nature.
-- RAII for ODBC handles: To ensure proper resource management and prevent leaks, RAII wrappers were implemented for ODBC handles.
+- RAII for ODBC handles: To ensure proper resource management and prevent leaks, RAII wrappers were implemented for ODBC handles. While technically unnnecesarry for such a small project, I found it a good practice.
 - Separate threads for API server and cleanup: The API server runs in the main thread, while a separate thread is dedicated to periodically cleaning up expired reservations. This allows handling of API requests without blocking due to cleanup operations.
 - Full GUI for all API operations: This made my life way easier when testing. The requirement was to only have a GUI for the ip-pool method, however I decided to extend it for all. 
 ## Setup
@@ -78,7 +78,7 @@ After building if using Visual Studio, run the project. You can also find the ex
 Ideally you would open the `frontend.html` and use it to manually test the API. However, you can also use `curl` or any API testing tool like Postman to send requests to the API endpoints.
 I personally failed to test with curl so I can not comment on that.
 An example Postman request could be: `Type: POST, URL: http://localhost:8080/ip-inventory/ip-pool, Body: {"ipAddresses": [{"ip": "9.9.9.9", "ipType": "IPv4"}]}`.
-
+You can also view the swagger yalm. I am not familiar with the technology and used editor.swagger.io to make it. I hope it works fine on whatever you use to inspect it.
 
 Configuration via environment variables(found in `CMakePresets.json`):
 
